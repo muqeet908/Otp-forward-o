@@ -2,9 +2,9 @@
 # CONFIG FILE
 # ============================================
 
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+BOT_TOKEN = "8685213129:AAGE3zGcJWUgG9GpcT8NdYmzSHpnlvb6_6w"
 
-API_KEY = "YOUR_API_KEY"
+API_KEY = "nxa_508f985d2852b6d82c038aa700b8e22655292bb6"
 
 BASE_URL = "http://185.190.142.81"
 
@@ -16,16 +16,16 @@ HEADERS = {
 # FORCE JOIN CHANNELS
 # ============================================
 
-CHANNEL_1 = "@channel1"
-CHANNEL_2 = "@channel2"
+CHANNEL_1 = "@muqeetxotp"
+CHANNEL_2 = "@muqeetxnumber"
 
 # ============================================
 # GROUPS
 # ============================================
 
-OTP_GROUP_ID = -1001234567890
+OTP_GROUP_ID = -1003622434067
 
-WITHDRAW_GROUP_ID = -1001234567890
+WITHDRAW_GROUP_ID = -1003789072707
 
 # ============================================
 # ADMIN
