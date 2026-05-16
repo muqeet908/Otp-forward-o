@@ -137,7 +137,7 @@ def home(chat_id, user):
 
         types.InlineKeyboardButton(
             "🟢 OTP Group",
-            url="https://t.me/yourgroup"
+            url="https://t.me/muqeetxotp"
         )
 
     )
@@ -212,9 +212,7 @@ def start(message):
 
         send_message(
             message.chat.id,
-            """
-⚠️ Join all channels first
-""",
+            "⚠️ Join all channels first",
             markup
         )
 
@@ -555,6 +553,8 @@ def callback(call):
 
             number_id = data["number_id"]
 
+            full_number = f"+228{number}"
+
             cursor.execute("""
             INSERT INTO numbers(
                 user_id,
@@ -568,7 +568,7 @@ def callback(call):
 
                 uid,
                 number_id,
-                number,
+                full_number,
                 range_text
 
             ))
@@ -611,8 +611,11 @@ def callback(call):
             text = f"""
 ╔══❖•ೋ° ☎️ °ೋ•❖══╗
 
+🌍 Country:
+Togo 🇹🇬
+
 📱 Number:
-<code>{number}</code>
+<code>{full_number}</code>
 
 ⏰ Expire:
 30 Minutes
@@ -630,7 +633,7 @@ def callback(call):
 
             threading.Thread(
                 target=check_otp,
-                args=(uid, number_id, number)
+                args=(uid, number_id, full_number)
             ).start()
 
         except Exception as e:
@@ -850,6 +853,15 @@ f"""
 
 def check_otp(user_id, number_id, number):
 
+    country_name = "Togo"
+    country_flag = "🇹🇬"
+
+    hidden_number = (
+        number[:6]
+        + "xxxxx" +
+        number[-3:]
+    )
+
     for _ in range(300):
 
         time.sleep(2)
@@ -865,22 +877,53 @@ def check_otp(user_id, number_id, number):
 
                 otp = s["otp"]
 
+                service = s.get(
+                    "service",
+                    "Unknown"
+                )
+
+                full_sms = s.get(
+                    "full_sms",
+                    "No Message"
+                )
+
+                markup = types.InlineKeyboardMarkup()
+
+                markup.add(
+
+                    types.InlineKeyboardButton(
+                        "🤖 OTP BOT",
+                        url="https://t.me/xamuqeet_bot"
+                    )
+
+                )
+
                 bot.send_message(
                     OTP_GROUP_ID,
 
 f"""
-╔══❖•ೋ° 🔥 °ೋ•❖══╗
+╔══❖•ೋ° 🔥 OTP RECEIVED 🔥 °ೋ•❖══╗
+
+🌍 Country:
+{country_name} {country_flag}
 
 📱 Number:
-<code>{number}</code>
+<code>{hidden_number}</code>
 
-🔑 OTP:
+🏢 Service:
+{service}
+
+🔑 OTP Code:
 <code>{otp}</code>
+
+📩 Full Message:
+<code>{full_sms}</code>
 
 ╚══❖•ೋ° 🔥 °ೋ•❖══╝
 """,
 
-                    parse_mode="HTML"
+                    parse_mode="HTML",
+                    reply_markup=markup
                 )
 
                 cursor.execute("""
