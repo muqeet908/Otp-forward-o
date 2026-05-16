@@ -1,3 +1,7 @@
+# ============================================
+# FILE NAME = bot.py
+# ============================================
+
 import telebot
 from telebot import types
 import requests
@@ -22,7 +26,10 @@ def delete_last(chat_id):
     try:
 
         if chat_id in last_messages:
-            bot.delete_message(chat_id, last_messages[chat_id])
+            bot.delete_message(
+                chat_id,
+                last_messages[chat_id]
+            )
 
     except:
         pass
@@ -78,15 +85,22 @@ def add_user(user):
         db.commit()
 
 # ============================================
-# CHECK JOIN
+# CHECK FORCE JOIN
 # ============================================
 
 def is_joined(user_id):
 
     try:
 
-        a = bot.get_chat_member(CHANNEL_1, user_id)
-        b = bot.get_chat_member(CHANNEL_2, user_id)
+        a = bot.get_chat_member(
+            CHANNEL_1,
+            user_id
+        )
+
+        b = bot.get_chat_member(
+            CHANNEL_2,
+            user_id
+        )
 
         if a.status in ["member", "administrator", "creator"] and b.status in ["member", "administrator", "creator"]:
             return True
@@ -97,19 +111,22 @@ def is_joined(user_id):
         return False
 
 # ============================================
-# HOME
+# HOME PANEL
 # ============================================
 
 def home(chat_id, user):
 
-    cursor.execute(
-        "SELECT balance FROM users WHERE user_id=?",
-        (user.id,)
-    )
+    cursor.execute("""
+    SELECT balance
+    FROM users
+    WHERE user_id=?
+    """, (user.id,))
 
     bal = cursor.fetchone()[0]
 
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup = types.InlineKeyboardMarkup(
+        row_width=2
+    )
 
     markup.add(
 
@@ -139,14 +156,19 @@ def home(chat_id, user):
 
 👋 Welcome @{user.username}
 
-💰 Balance: {bal} taka
+💰 Balance:
+{bal} taka
 
-✨ Use buttons below
+✨ Select option below
 
 ╚══❖•ೋ° 🌟 °ೋ•❖══╝
 """
 
-    send_message(chat_id, text, markup)
+    send_message(
+        chat_id,
+        text,
+        markup
+    )
 
 # ============================================
 # START
@@ -162,35 +184,104 @@ def start(message):
         markup = types.InlineKeyboardMarkup()
 
         markup.add(
+
             types.InlineKeyboardButton(
                 "📢 Join Channel 1",
                 url=f"https://t.me/{CHANNEL_1.replace('@','')}"
             )
+
         )
 
         markup.add(
+
             types.InlineKeyboardButton(
                 "📢 Join Channel 2",
                 url=f"https://t.me/{CHANNEL_2.replace('@','')}"
             )
+
         )
 
         markup.add(
+
             types.InlineKeyboardButton(
                 "✅ Verify",
                 callback_data="verify"
             )
+
         )
 
         send_message(
             message.chat.id,
-            "⚠️ Join all channels first",
+            """
+⚠️ Join all channels first
+""",
             markup
         )
 
         return
 
-    home(message.chat.id, message.from_user)
+    home(
+        message.chat.id,
+        message.from_user
+    )
+
+# ============================================
+# ADMIN COMMAND
+# ============================================
+
+@bot.message_handler(commands=['admin'])
+def admin(message):
+
+    msg = bot.send_message(
+        message.chat.id,
+        "🔐 Enter Admin Password"
+    )
+
+    bot.register_next_step_handler(
+        msg,
+        admin_password
+    )
+
+# ============================================
+# ADMIN PASSWORD
+# ============================================
+
+def admin_password(message):
+
+    if message.text != ADMIN_PASSWORD:
+
+        send_message(
+            message.chat.id,
+            "❌ Wrong Password"
+        )
+
+        return
+
+    markup = types.InlineKeyboardMarkup()
+
+    markup.add(
+
+        types.InlineKeyboardButton(
+            "👥 Users Database",
+            callback_data="users_database"
+        )
+
+    )
+
+    markup.add(
+
+        types.InlineKeyboardButton(
+            "📂 Ranges",
+            callback_data="ranges"
+        )
+
+    )
+
+    send_message(
+        message.chat.id,
+        "👑 ADMIN PANEL",
+        markup
+    )
 
 # ============================================
 # CALLBACKS
@@ -209,7 +300,10 @@ def callback(call):
 
         if is_joined(uid):
 
-            home(call.message.chat.id, call.from_user)
+            home(
+                call.message.chat.id,
+                call.from_user
+            )
 
         else:
 
@@ -219,12 +313,196 @@ def callback(call):
             )
 
     # ========================================
+    # USERS DATABASE
+    # ========================================
+
+    elif call.data == "users_database":
+
+        cursor.execute("""
+        SELECT
+        name,
+        username,
+        balance,
+        total_numbers,
+        total_otps
+
+        FROM users
+        """)
+
+        users = cursor.fetchall()
+
+        if not users:
+
+            send_message(
+                call.message.chat.id,
+                "❌ No Users Found"
+            )
+
+            return
+
+        text = "👥 USERS DATABASE\n\n"
+
+        for user in users:
+
+            text += f"""
+━━━━━━━━━━━━━━
+
+👤 Name:
+{user[0]}
+
+🆔 Username:
+@{user[1]}
+
+💰 Balance:
+{user[2]}
+
+📱 Total Numbers:
+{user[3]}
+
+🔑 Total OTPs:
+{user[4]}
+
+━━━━━━━━━━━━━━
+"""
+
+        send_message(
+            call.message.chat.id,
+            text
+        )
+
+    # ========================================
+    # RANGES PANEL
+    # ========================================
+
+    elif call.data == "ranges":
+
+        cursor.execute("""
+        SELECT range_text
+        FROM ranges
+        """)
+
+        ranges = cursor.fetchall()
+
+        markup = types.InlineKeyboardMarkup()
+
+        for r in ranges:
+
+            markup.add(
+
+                types.InlineKeyboardButton(
+                    r[0],
+                    callback_data=f"remove_range_{r[0]}"
+                )
+
+            )
+
+        markup.add(
+
+            types.InlineKeyboardButton(
+                "➕ Add Range",
+                callback_data="add_range"
+            )
+
+        )
+
+        send_message(
+            call.message.chat.id,
+            "📂 ALL RANGES",
+            markup
+        )
+
+    # ========================================
+    # ADD RANGE
+    # ========================================
+
+    elif call.data == "add_range":
+
+        msg = bot.send_message(
+            call.message.chat.id,
+            "📥 Send New Range"
+        )
+
+        bot.register_next_step_handler(
+            msg,
+            add_range_process
+        )
+
+    # ========================================
+    # REMOVE RANGE
+    # ========================================
+
+    elif call.data.startswith("remove_range_"):
+
+        range_text = call.data.replace(
+            "remove_range_",
+            ""
+        )
+
+        markup = types.InlineKeyboardMarkup(
+            row_width=2
+        )
+
+        markup.add(
+
+            types.InlineKeyboardButton(
+                "✅ Yes",
+                callback_data=f"yes_remove_{range_text}"
+            ),
+
+            types.InlineKeyboardButton(
+                "❌ No",
+                callback_data="ranges"
+            )
+
+        )
+
+        send_message(
+            call.message.chat.id,
+            f"""
+⚠️ Remove This Range?
+
+📂 {range_text}
+""",
+            markup
+        )
+
+    # ========================================
+    # YES REMOVE
+    # ========================================
+
+    elif call.data.startswith("yes_remove_"):
+
+        range_text = call.data.replace(
+            "yes_remove_",
+            ""
+        )
+
+        cursor.execute("""
+        DELETE FROM ranges
+        WHERE range_text=?
+        """, (range_text,))
+
+        db.commit()
+
+        send_message(
+            call.message.chat.id,
+            f"""
+✅ Range Removed
+
+📂 {range_text}
+"""
+        )
+
+    # ========================================
     # GET NUMBER
     # ========================================
 
     elif call.data == "get_number":
 
-        cursor.execute("SELECT range_text FROM ranges")
+        cursor.execute("""
+        SELECT range_text
+        FROM ranges
+        """)
 
         ranges = cursor.fetchall()
 
@@ -253,7 +531,10 @@ def callback(call):
 
     elif call.data.startswith("range_"):
 
-        range_text = call.data.replace("range_", "")
+        range_text = call.data.replace(
+            "range_",
+            ""
+        )
 
         try:
 
@@ -300,7 +581,9 @@ def callback(call):
 
             db.commit()
 
-            markup = types.InlineKeyboardMarkup(row_width=2)
+            markup = types.InlineKeyboardMarkup(
+                row_width=2
+            )
 
             markup.add(
 
@@ -320,7 +603,7 @@ def callback(call):
 
                 types.InlineKeyboardButton(
                     "🟢 OTP Group",
-                    url="https://t.me/yourgroup"
+                    url="https://t.me/muqeetxotp"
                 )
 
             )
@@ -331,10 +614,10 @@ def callback(call):
 📱 Number:
 <code>{number}</code>
 
-⏰ Expire Time:
+⏰ Expire:
 30 Minutes
 
-🔍 Waiting OTP...
+🔍 Waiting For OTP...
 
 ╚══❖•ೋ° ☎️ °ೋ•❖══╝
 """
@@ -366,22 +649,26 @@ def callback(call):
         markup = types.InlineKeyboardMarkup()
 
         markup.add(
+
             types.InlineKeyboardButton(
                 "➕ Add Wallet",
                 callback_data="add_wallet"
             )
+
         )
 
         markup.add(
+
             types.InlineKeyboardButton(
                 "💸 Withdraw Money",
                 callback_data="withdraw_money"
             )
+
         )
 
         send_message(
             call.message.chat.id,
-            "💰 Withdraw Panel",
+            "💰 WITHDRAW PANEL",
             markup
         )
 
@@ -393,7 +680,7 @@ def callback(call):
 
         msg = bot.send_message(
             call.message.chat.id,
-            "📥 Send TRC20 Address"
+            "📥 Send TRC20 Wallet"
         )
 
         bot.register_next_step_handler(
@@ -408,7 +695,8 @@ def callback(call):
     elif call.data == "withdraw_money":
 
         cursor.execute("""
-        SELECT balance FROM users
+        SELECT balance
+        FROM users
         WHERE user_id=?
         """, (uid,))
 
@@ -418,19 +706,52 @@ def callback(call):
 
             send_message(
                 call.message.chat.id,
-                "❌ Minimum withdraw 100 taka"
+                "❌ Minimum Withdraw 100 Taka"
             )
 
             return
 
         msg = bot.send_message(
             call.message.chat.id,
-            "💵 Enter amount"
+            "💵 Enter Amount"
         )
 
         bot.register_next_step_handler(
             msg,
             withdraw_process
+        )
+
+# ============================================
+# ADD RANGE PROCESS
+# ============================================
+
+def add_range_process(message):
+
+    range_text = message.text
+
+    try:
+
+        cursor.execute("""
+        INSERT INTO ranges(range_text)
+        VALUES(?)
+        """, (range_text,))
+
+        db.commit()
+
+        send_message(
+            message.chat.id,
+            f"""
+✅ Range Added
+
+📂 {range_text}
+"""
+        )
+
+    except:
+
+        send_message(
+            message.chat.id,
+            "❌ Range Already Exists"
         )
 
 # ============================================
@@ -499,7 +820,7 @@ def withdraw_process(message):
         WITHDRAW_GROUP_ID,
 
 f"""
-💸 NEW WITHDRAW
+💸 NEW WITHDRAW REQUEST
 
 👤 Name:
 {message.from_user.first_name}
@@ -517,9 +838,9 @@ f"""
     send_message(
         message.chat.id,
         """
-✅ Withdraw request sent
+✅ Withdraw Request Sent
 
-⏳ Wait 24 hours
+⏳ Wait 24 Hours
 """
     )
 
@@ -586,63 +907,7 @@ f"""
             pass
 
 # ============================================
-# ADMIN PANEL
-# ============================================
-
-@bot.message_handler(commands=['admin'])
-def admin(message):
-
-    msg = bot.send_message(
-        message.chat.id,
-        "🔐 Enter Admin Password"
-    )
-
-    bot.register_next_step_handler(
-        msg,
-        admin_password
-    )
-
-# ============================================
-
-def admin_password(message):
-
-    if message.text != ADMIN_PASSWORD:
-
-        send_message(
-            message.chat.id,
-            "❌ Wrong Password"
-        )
-
-        return
-
-    markup = types.InlineKeyboardMarkup()
-
-    markup.add(
-
-        types.InlineKeyboardButton(
-            "👥 Users Database",
-            callback_data="users_database"
-        )
-
-    )
-
-    markup.add(
-
-        types.InlineKeyboardButton(
-            "📂 Ranges",
-            callback_data="ranges"
-        )
-
-    )
-
-    send_message(
-        message.chat.id,
-        "👑 Admin Panel",
-        markup
-    )
-
-# ============================================
-# RUN
+# RUN BOT
 # ============================================
 
 print("✅ BOT RUNNING")
